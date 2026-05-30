@@ -73,15 +73,34 @@
 
 ---
 
+## Race Master Document
+
+- [x] Assemble master race document
+- [x] Add race date
+- [x] Add race ID
+- [x] Add race name
+- [x] Add distance
+- [x] Add race type
+- [x] Add race rank/tier
+- [x] Add Icelandic championship flag
+- [x] Add results URL where available
+- [ ] Review all S-tier races manually
+- [ ] Review all A-tier races manually
+- [ ] Confirm official Icelandic championship races are correctly flagged
+- [ ] Confirm cross-country races are left as later classification items
+- [ ] Confirm road/trail balance feels right for the overall championship
+
+---
+
 ## Championship Decisions
 
 - [ ] Finalize project name
 - [ ] Decide branding/language approach
 - [ ] Decide first official season
-- [ ] Decide race tiers
-- [ ] Decide initial race list
+- [ ] Finalize race tiers from master race document
 - [ ] Decide eligibility requirements
 - [ ] Decide best-X-results logic
+- [ ] Decide whether cross-country counts toward road, trail, or separate category later
 
 ---
 
@@ -93,6 +112,7 @@
 - [ ] Review championship standings
 - [ ] Review Elo rankings
 - [ ] Review race-tier assignments
+- [ ] Review championship-flag logic
 
 ---
 

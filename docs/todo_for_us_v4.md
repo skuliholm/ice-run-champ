@@ -9,10 +9,14 @@
 - [x] Define Hlaupadagskrá as calendar metadata source
 - [x] Define Timataka as primary results source
 - [x] Define Corsa as later/manual exception source
+- [x] Create initial master race document
+- [x] Add Icelandic championship flag to master race document
+- [x] Adjust race tier balance to be somewhat road-heavy
 - [ ] Finalize championship structure
 - [ ] Finalize Elo structure
 - [ ] Finalize race-tier system
 - [ ] Finalize scoring logic
+- [ ] Decide treatment of cross-country races later
 
 ---
 
@@ -21,7 +25,11 @@
 - [x] Create initial database schema
 - [x] Create Supabase SQL migration
 - [x] Push initial migration to Supabase
-- [ ] Review schema against V1 requirements
+- [ ] Review schema against master race document columns
+- [ ] Confirm support for race rank/tier
+- [ ] Confirm support for Icelandic championship flag
+- [ ] Confirm support for timing provider
+- [ ] Confirm support for import status
 - [ ] Add/adjust indexes
 - [ ] Add/adjust relationships
 - [ ] Add public read policies
@@ -40,16 +48,43 @@ Initial tables:
 
 ---
 
+## Master Race Document Import
+
+- [ ] Add master race CSV to repo in an appropriate location
+- [ ] Decide whether source file lives in:
+  - [ ] `/data/master_race_calendar.csv`
+  - [ ] `/imports/master_race_calendar.csv`
+  - [ ] `/supabase/seed/`
+- [ ] Create importer for master race CSV
+- [ ] Validate required columns:
+  - [ ] `date`
+  - [ ] `id`
+  - [ ] `run`
+  - [ ] `km`
+  - [ ] `type`
+  - [ ] `rank`
+  - [ ] `is_icelandic_championship`
+  - [ ] `results`
+- [ ] Normalize race type values
+- [ ] Normalize rank values
+- [ ] Convert championship flag to boolean
+- [ ] Store race metadata in Supabase
+- [ ] Preserve original CSV values where useful
+
+---
+
 ## Race Calendar System
 
-- [ ] Build Hlaupadagskrá scraper/importer
-- [ ] Extract:
+- [ ] Build Hlaupadagskrá scraper/importer later
+- [ ] Use master race document as V1 calendar seed
+- [ ] Extract/store:
   - [ ] race names
   - [ ] dates
   - [ ] distances
-  - [ ] categories
-  - [ ] regions
-  - [ ] source links
+  - [ ] categories/types
+  - [ ] rankings/tiers
+  - [ ] championship flags
+  - [ ] results links
 - [ ] Store event metadata separately from results
 - [ ] Add calendar import status tracking
 
@@ -79,10 +114,10 @@ Initial tables:
 
 ## Mock Data Generation
 
-- [ ] Generate realistic Icelandic races
 - [ ] Generate realistic athlete pool
-- [ ] Generate recurring athletes
-- [ ] Generate realistic finish times
+- [ ] Generate realistic results for races in the master race document
+- [ ] Generate recurring athletes across races
+- [ ] Generate realistic finish times by distance/type
 - [ ] Create enough data for meaningful rankings
 - [ ] Clearly mark mock data as mock/test data
 
@@ -96,6 +131,8 @@ Initial tables:
 - [ ] Implement eligibility requirements
 - [ ] Implement club scoring
 - [ ] Add age groups later
+- [ ] Treat official Icelandic championship flag as separate from race tier
+- [ ] Decide if championship-flagged races receive any special display/badge
 
 ---
 
@@ -103,10 +140,11 @@ Initial tables:
 
 - [ ] Build multiplayer Elo system
 - [ ] Implement pairwise comparisons
-- [ ] Implement field-strength adjustments
-- [ ] Implement race-tier K-factors
+- [ ] Implement field-strength through opponent ratings
+- [ ] Implement race-tier K-factors if needed
 - [ ] Optionally add time-gap adjustments
 - [ ] Store Elo history
+- [ ] Keep Elo separate from championship standings
 
 ---
 
@@ -119,6 +157,8 @@ Initial tables:
 - [ ] Create athlete pages
 - [ ] Create race pages
 - [ ] Create methodology page
+- [ ] Create race calendar page from master race document
+- [ ] Add championship-race badge/display
 - [ ] Add category filters
 - [ ] Make tables mobile-friendly
 
@@ -137,17 +177,19 @@ Initial tables:
 
 ## Immediate Next Build Step
 
-- [ ] Ask Codex to review the current repo and docs
-- [ ] Ask Codex to create a clean project structure plan
-- [ ] Ask Codex to replace the default homepage with an IRC landing page using static placeholder data
-- [ ] Commit and push first custom frontend
-- [ ] Confirm Vercel redeploys automatically
+- [ ] Ask Codex to review current repo, docs, and master race CSV
+- [ ] Ask Codex to create a master race CSV importer
+- [ ] Ask Codex to verify the database schema supports the master race document
+- [ ] Ask Codex to add missing schema fields via migration if needed
+- [ ] Ask Codex to seed Supabase with the master race document
+- [ ] Commit and push the importer + schema changes
+- [ ] Confirm Vercel redeploys automatically after frontend changes
 
 ---
 
 ## Future V2/V3 Ideas
 
-- [ ] Automated imports
+- [ ] Automated Hlaupadagskrá imports
 - [ ] Better athlete matching
 - [ ] Historical seasons
 - [ ] Rolling rankings

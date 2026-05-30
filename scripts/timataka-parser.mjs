@@ -178,7 +178,12 @@ function titleFromText(text) {
   );
 }
 
-export function parseTimatakaResults(html, sourceUrl = DEFAULT_PUFFIN_URL, category = "overall") {
+export function parseTimatakaResults(
+  html,
+  sourceUrl = DEFAULT_PUFFIN_URL,
+  category = "overall",
+  metadata = {},
+) {
   const pageText = textFromHtml(html);
   const tableRows = parseRowsFromTable(html);
   const parsedRows = tableRows.map(splitResultRow).filter(Boolean);
@@ -191,33 +196,37 @@ export function parseTimatakaResults(html, sourceUrl = DEFAULT_PUFFIN_URL, categ
     .replace(/^TÍMATAKA:\s*/i, "")
     .replace(/\s+-\s+Heimaeyjarhringurinn.*$/i, "")
     .replace(/\s+2026$/, "");
-  const date = parseDateFromText(pageText) ?? "2026-05-02";
+  const date = metadata.event?.date ?? parseDateFromText(pageText) ?? "2026-05-02";
   const startedFinishedMatch = pageText.match(/Started\s*\/\s*Finished\s+(\d+)\s*\/\s*(\d+)/i);
+  const eventId = metadata.event?.id ?? "the-puffin-run-2026";
+  const raceId = metadata.race?.id ?? "the-puffin-run-2026-overall";
+  const distanceMeters =
+    metadata.race && "distanceMeters" in metadata.race ? metadata.race.distanceMeters : 21098;
 
   return {
     sourceUrl,
     importedAt: new Date().toISOString(),
     category,
     event: {
-      id: "the-puffin-run-2026",
-      name: eventName,
+      id: eventId,
+      name: metadata.event?.name ?? eventName,
       date,
-      region: "Vestmannaeyjar",
-      source: "timataka",
+      region: metadata.event?.region ?? "Vestmannaeyjar",
+      source: metadata.event?.source ?? "timataka",
       sourceUrl,
-      importStatus: "imported",
+      importStatus: metadata.event?.importStatus ?? "imported",
       isMock: false,
     },
     race: {
-      id: "the-puffin-run-2026-overall",
-      eventId: "the-puffin-run-2026",
-      name: "Heimaeyjarhringurinn",
-      distanceMeters: 21098,
-      category: "overall",
-      raceTier: "major",
-      timingProvider: "timataka",
+      id: raceId,
+      eventId,
+      name: metadata.race?.name ?? "Heimaeyjarhringurinn",
+      distanceMeters,
+      category: metadata.race?.category ?? "overall",
+      raceTier: metadata.race?.raceTier ?? "major",
+      timingProvider: metadata.race?.timingProvider ?? "timataka",
       sourceUrl,
-      importStatus: "imported",
+      importStatus: metadata.race?.importStatus ?? "imported",
       isMock: false,
       started: startedFinishedMatch ? Number(startedFinishedMatch[1]) : parsedRows.length,
       finished: parsedRows.length,
