@@ -173,8 +173,8 @@ Initial tables:
 - [x] Connect frontend to Vercel
 - [x] Verify basic production deployment
 - [x] Connect frontend to Supabase
-- [ ] Add final production environment variables
-- [ ] Verify Supabase-backed production pages
+- [x] Add final production environment variables
+- [x] Verify Supabase-backed production pages
 - [x] Add deployment workflow/checklist
 
 ---
@@ -190,7 +190,7 @@ Initial tables:
 - [x] Seed hosted Supabase with the master race document
 - [x] Import Puffin Run into hosted Supabase
 - [ ] Commit and push the importer + schema changes
-- [ ] Confirm Vercel redeploys automatically after frontend changes
+- [x] Confirm Vercel redeploys automatically after frontend changes
 
 ---
 
