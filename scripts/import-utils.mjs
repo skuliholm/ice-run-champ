@@ -1,26 +1,5 @@
-import { readFile } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import { createClient } from "@supabase/supabase-js";
-
-const ENV_FILES = [".env.local", ".env"];
-
-export async function loadEnvFiles() {
-  for (const path of ENV_FILES) {
-    let contents;
-    try {
-      contents = await readFile(path, "utf8");
-    } catch (error) {
-      if (error.code !== "ENOENT") throw error;
-      continue;
-    }
-
-    for (const line of contents.split(/\r?\n/)) {
-      const match = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)=(.*)\s*$/);
-      if (!match || process.env[match[1]]) continue;
-      process.env[match[1]] = unquoteEnvValue(match[2]);
-    }
-  }
-}
 
 function unquoteEnvValue(value) {
   const trimmed = value.trim();
@@ -133,31 +112,72 @@ export function sourceRaceId(row) {
   return `${sourceEventId(row)}-${distance}-${category}`;
 }
 
-export async function createServiceClient() {
-  await loadEnvFiles();
-  const cliEnv = readSupabaseStatusEnv();
-  const url =
-    process.env.SUPABASE_URL ??
-    process.env.SUPABASE_API_URL ??
-    cliEnv.API_URL ??
-    "http://127.0.0.1:54321";
-  const serviceRoleKey =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ??
-    process.env.SUPABASE_SERVICE_KEY ??
-    cliEnv.SERVICE_ROLE_KEY;
-
-  if (!serviceRoleKey) {
-    throw new Error(
-      "Missing SUPABASE_SERVICE_ROLE_KEY. Start local Supabase and run `supabase status -o env`, or add the service role key to your shell environment.",
-    );
+export function createServiceClient({ target = "local" } = {}) {
+  if (target !== "local" && target !== "hosted") {
+    throw new Error(`Invalid --target "${target}". Use "local" or "hosted".`);
   }
 
-  return createClient(url, serviceRoleKey, {
+  const credentials =
+    target === "hosted" ? hostedCredentialsFromEnv() : localCredentialsFromSupabaseCli();
+  validateTargetUrl(target, credentials.url);
+
+  const hostname = new URL(credentials.url).hostname;
+  console.log(`Using ${target} Supabase target at ${hostname}.`);
+
+  return createClient(credentials.url, credentials.serviceRoleKey, {
     auth: {
       persistSession: false,
       autoRefreshToken: false,
     },
   });
+}
+
+function hostedCredentialsFromEnv() {
+  const url = process.env.SUPABASE_URL ?? process.env.SUPABASE_API_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SERVICE_KEY;
+
+  if (!url || !serviceRoleKey) {
+    throw new Error(
+      "Hosted imports require SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in the shell environment. .env.local is intentionally not read for service-role writes.",
+    );
+  }
+
+  return { url, serviceRoleKey };
+}
+
+function localCredentialsFromSupabaseCli() {
+  const cliEnv = readSupabaseStatusEnv();
+  const url = cliEnv.API_URL ?? "http://127.0.0.1:54321";
+  const serviceRoleKey = cliEnv.SERVICE_ROLE_KEY;
+
+  if (!serviceRoleKey) {
+    throw new Error(
+      "Local imports require local Supabase to be running. Start it with `supabase start`.",
+    );
+  }
+
+  return { url, serviceRoleKey };
+}
+
+function validateTargetUrl(target, urlValue) {
+  let url;
+  try {
+    url = new URL(urlValue);
+  } catch {
+    throw new Error(`Invalid Supabase URL for ${target} target.`);
+  }
+
+  const isLocal =
+    url.hostname === "localhost" ||
+    url.hostname === "127.0.0.1" ||
+    url.hostname === "::1";
+
+  if (target === "hosted" && isLocal) {
+    throw new Error("Refusing hosted import because SUPABASE_URL points to localhost.");
+  }
+  if (target === "local" && !isLocal) {
+    throw new Error("Refusing local import because the resolved Supabase URL is not localhost.");
+  }
 }
 
 function readSupabaseStatusEnv() {

@@ -5,6 +5,7 @@ import {
 } from "./import-utils.mjs";
 import { parseTimatakaResults, timatakaCategoryUrl } from "./timataka-parser.mjs";
 
+// Operational notes and safety rules live in docs/import_pipeline.md.
 async function fetchCategory(sourceUrl, category, metadata) {
   const categoryUrl = timatakaCategoryUrl(sourceUrl, category);
   const response = await fetch(categoryUrl, {
@@ -27,7 +28,7 @@ async function main() {
     throw new Error("Provide --race-id 13 or --source-race-id schedule-2026-13-20-overall.");
   }
 
-  const supabase = await createServiceClient();
+  const supabase = createServiceClient({ target: args.target ?? "local" });
   const race = await findRace(supabase, scheduleRaceId);
   if (!race.source_url) {
     throw new Error(`Race ${race.source_race_id} does not have a Timataka result URL.`);

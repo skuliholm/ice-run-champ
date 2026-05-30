@@ -25,15 +25,17 @@
 - [x] Create initial database schema
 - [x] Create Supabase SQL migration
 - [x] Push initial migration to Supabase
-- [ ] Review schema against master race document columns
-- [ ] Confirm support for race rank/tier
-- [ ] Confirm support for Icelandic championship flag
-- [ ] Confirm support for timing provider
-- [ ] Confirm support for import status
-- [ ] Add/adjust indexes
-- [ ] Add/adjust relationships
-- [ ] Add public read policies
-- [ ] Keep writes private/service-role only
+- [x] Review schema against master race document columns
+- [x] Confirm support for race rank/tier
+- [x] Confirm support for Icelandic championship flag
+- [x] Confirm support for timing provider
+- [x] Confirm support for import status
+- [x] Add/adjust indexes
+- [x] Add/adjust relationships
+- [x] Add public read policies
+- [x] Keep writes private/service-role only
+- [x] Add durable athlete alias identity fields
+- [ ] Push latest schema migrations to hosted Supabase
 
 Initial tables:
 - [x] athletes
@@ -50,64 +52,66 @@ Initial tables:
 
 ## Master Race Document Import
 
-- [ ] Add master race CSV to repo in an appropriate location
-- [ ] Decide whether source file lives in:
-  - [ ] `/data/master_race_calendar.csv`
-  - [ ] `/imports/master_race_calendar.csv`
-  - [ ] `/supabase/seed/`
-- [ ] Create importer for master race CSV
-- [ ] Validate required columns:
-  - [ ] `date`
-  - [ ] `id`
-  - [ ] `run`
-  - [ ] `km`
-  - [ ] `type`
-  - [ ] `rank`
-  - [ ] `is_icelandic_championship`
-  - [ ] `results`
-- [ ] Normalize race type values
-- [ ] Normalize rank values
-- [ ] Convert championship flag to boolean
-- [ ] Store race metadata in Supabase
-- [ ] Preserve original CSV values where useful
+- [x] Add master race CSV to repo as `schedule_results.csv`
+- [x] Create importer for master race CSV
+- [x] Validate required columns:
+  - [x] `date`
+  - [x] `id`
+  - [x] `run`
+  - [x] `km`
+  - [x] `type`
+  - [x] `rank`
+  - [x] `is_icelandic_championship`
+  - [x] `results`
+- [x] Normalize race type values enough for V1 storage
+- [x] Normalize rank values enough for V1 storage
+- [x] Convert championship flag to boolean
+- [x] Store race metadata in Supabase
+- [x] Preserve original CSV values where useful
+- [ ] Decide long-term source file location/name
 
 ---
 
 ## Race Calendar System
 
 - [ ] Build Hlaupadagskrá scraper/importer later
-- [ ] Use master race document as V1 calendar seed
-- [ ] Extract/store:
-  - [ ] race names
-  - [ ] dates
-  - [ ] distances
-  - [ ] categories/types
-  - [ ] rankings/tiers
-  - [ ] championship flags
-  - [ ] results links
-- [ ] Store event metadata separately from results
-- [ ] Add calendar import status tracking
+- [x] Use master race document as V1 calendar seed
+- [x] Extract/store:
+  - [x] race names
+  - [x] dates
+  - [x] distances
+  - [x] categories/types
+  - [x] rankings/tiers
+  - [x] championship flags
+  - [x] results links
+- [x] Store event metadata separately from results
+- [x] Add calendar import status tracking
+- [ ] Import calendar into hosted Supabase
 
 ---
 
 ## Results Import System
 
-- [ ] Build Timataka importer
-- [ ] Import first real race
-- [ ] Normalize results
-- [ ] Parse names/times/ranks/clubs
-- [ ] Store raw imported rows
-- [ ] Store cleaned results separately
-- [ ] Preserve source URLs
-- [ ] Add import batch tracking
+- [x] Build Timataka importer
+- [x] Import first real race locally
+- [x] Normalize results
+- [x] Parse names/times/ranks/clubs
+- [x] Store raw imported rows
+- [x] Store cleaned results separately
+- [x] Preserve source URLs
+- [x] Add import batch tracking
+- [x] Add explicit local/hosted import target guards
+- [ ] Import first real race into hosted Supabase
+- [ ] Add broader multi-race import loop
+- [ ] Add better athlete matching/review workflow
 
 ---
 
 ## Corsa Support
 
 - [ ] Design schema support for Corsa
-- [ ] Add `timing_provider` field if not already included
-- [ ] Add `import_status` field if not already included
+- [x] Add `timing_provider` field if not already included
+- [x] Add `import_status` field if not already included
 - [ ] Postpone full Corsa importer until later
 
 ---
@@ -177,11 +181,14 @@ Initial tables:
 
 ## Immediate Next Build Step
 
-- [ ] Ask Codex to review current repo, docs, and master race CSV
-- [ ] Ask Codex to create a master race CSV importer
-- [ ] Ask Codex to verify the database schema supports the master race document
-- [ ] Ask Codex to add missing schema fields via migration if needed
-- [ ] Ask Codex to seed Supabase with the master race document
+- [x] Ask Codex to review current repo, docs, and master race CSV
+- [x] Ask Codex to create a master race CSV importer
+- [x] Ask Codex to verify the database schema supports the master race document
+- [x] Ask Codex to add missing schema fields via migration if needed
+- [x] Ask Codex to seed local Supabase with the master race document
+- [ ] Push schema migrations to hosted Supabase
+- [ ] Seed hosted Supabase with the master race document
+- [ ] Import Puffin Run into hosted Supabase
 - [ ] Commit and push the importer + schema changes
 - [ ] Confirm Vercel redeploys automatically after frontend changes
 

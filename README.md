@@ -1,36 +1,56 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Icelandic Running Championships
 
-## Getting Started
+Prototype for a public Icelandic running championship site. The app currently uses a generated JSON dataset for frontend pages while the Supabase import pipeline is being built and verified.
 
-First, run the development server:
+## Stack
 
-```bash
+- Next.js 16 App Router
+- React 19
+- Tailwind CSS 4
+- Supabase
+- Vercel
+
+Read `AGENTS.md` before changing Next.js code. This repo uses a newer Next.js version with local docs in `node_modules/next/dist/docs/`.
+
+## Local Development
+
+```sh
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Useful checks:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```sh
+npm run data:validate
+npm run lint
+npm run build
+```
 
-## Learn More
+## Data Pipeline
 
-To learn more about Next.js, take a look at the following resources:
+See:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `docs/import_pipeline.md`
+- `docs/data_model_decisions.md`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Local Supabase import flow:
 
-## Deploy on Vercel
+```sh
+supabase start
+supabase migration up
+npm run import:schedule -- --target local
+npm run import:timataka:db -- --target local --race-id 13
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Hosted imports must be explicit and use shell-provided credentials:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```sh
+SUPABASE_URL="https://..." SUPABASE_SERVICE_ROLE_KEY="..." npm run import:schedule -- --target hosted
+SUPABASE_URL="https://..." SUPABASE_SERVICE_ROLE_KEY="..." npm run import:timataka:db -- --target hosted --race-id 13
+```
+
+Do not commit secrets. `.env.local` is ignored and should not be inspected or shared.
+

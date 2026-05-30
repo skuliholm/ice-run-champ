@@ -1,10 +1,13 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
+
+// Operational notes and safety rules live in docs/import_pipeline.md.
 import {
   categoryFromUrl,
   createServiceClient,
   distanceMetersFromKm,
   normalizeDistanceLabel,
+  parseArgs,
   parseCsv,
   sourceEventId,
   sourceRaceId,
@@ -26,8 +29,9 @@ function eventRows(rows) {
 }
 
 async function main() {
+  const args = parseArgs();
   const rows = parseCsv(await readFile(inputPath, "utf8"));
-  const supabase = await createServiceClient();
+  const supabase = createServiceClient({ target: args.target ?? "local" });
 
   const events = eventRows(rows).map((row) => ({
     source_event_id: sourceEventId(row),
