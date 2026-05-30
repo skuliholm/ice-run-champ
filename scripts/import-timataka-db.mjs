@@ -207,19 +207,32 @@ async function upsertAthletes(supabase, results, clubIdByName) {
     upserted.map((athlete) => [`${athlete.normalized_name}-${athlete.birth_year ?? "unknown"}`, athlete.id]),
   );
 
-  const aliases = [...byKey.values()]
-    .map((result) => ({
-      athlete_id: idByKey.get(`${result.normalizedName}-${result.birthYear ?? "unknown"}`),
+  const aliasesByKey = new Map();
+  for (const result of byKey.values()) {
+    const athleteId = idByKey.get(`${result.normalizedName}-${result.birthYear ?? "unknown"}`);
+    if (!athleteId) continue;
+    const sourceProvider = "timataka";
+    const sourceKey = `yob:${result.birthYear ?? "unknown"}`;
+    aliasesByKey.set(`${result.normalizedName}|${sourceProvider}|${sourceKey}`, {
+      athlete_id: athleteId,
       alias: result.name,
       normalized_alias: result.normalizedName,
-      source: "timataka",
-    }))
-    .filter((alias) => alias.athlete_id);
+      source: sourceProvider,
+      source_provider: sourceProvider,
+      source_key: sourceKey,
+      source_birth_year: result.birthYear,
+      source_payload: {
+        provider: sourceProvider,
+        strategy: "yob",
+      },
+    });
+  }
+  const aliases = [...aliasesByKey.values()];
 
   if (aliases.length > 0) {
     throwIfSupabaseError(
       await supabase.from("athlete_aliases").upsert(aliases, {
-        onConflict: "normalized_alias,source",
+        onConflict: "normalized_alias,source_provider,source_key",
       }),
       "Failed to upsert athlete aliases",
     );
