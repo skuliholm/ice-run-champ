@@ -1,6 +1,6 @@
 # Icelandic Running Championships
 
-Prototype for a public Icelandic running championship site. The app currently uses a generated JSON dataset for frontend pages while the Supabase import pipeline is being built and verified.
+Prototype for a public Icelandic running championship site. The race calendar and imported Puffin Run results can render from hosted Supabase; championship standings remain a generated prototype layer while scoring rules are finalized.
 
 ## Stack
 
@@ -20,6 +20,13 @@ npm run dev
 ```
 
 Open `http://localhost:3000`.
+
+Create `.env.local` from `.env.example` for Supabase-backed pages:
+
+```sh
+NEXT_PUBLIC_SUPABASE_URL="https://..."
+NEXT_PUBLIC_SUPABASE_ANON_KEY="..."
+```
 
 Useful checks:
 
@@ -54,3 +61,19 @@ SUPABASE_URL="https://..." SUPABASE_SERVICE_ROLE_KEY="..." npm run import:timata
 
 Do not commit secrets. `.env.local` is ignored and should not be inspected or shared.
 
+## Deployment
+
+Vercel production and preview environments need these public runtime variables:
+
+```sh
+NEXT_PUBLIC_SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY
+```
+
+The website does not need a Supabase service-role key. Service-role credentials are only for one-off import commands run from a trusted shell.
+
+After deployment, verify:
+
+- Homepage shows `188 Supabase races`.
+- Homepage links the featured race to `/races/schedule-2026-13-20-overall`.
+- `/races/schedule-2026-13-20-overall` shows The Puffin Run, 425 finishers, and `timataka`.

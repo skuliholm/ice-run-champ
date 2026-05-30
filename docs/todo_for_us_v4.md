@@ -35,7 +35,7 @@
 - [x] Add public read policies
 - [x] Keep writes private/service-role only
 - [x] Add durable athlete alias identity fields
-- [ ] Push latest schema migrations to hosted Supabase
+- [x] Push latest schema migrations to hosted Supabase
 
 Initial tables:
 - [x] athletes
@@ -86,7 +86,7 @@ Initial tables:
   - [x] results links
 - [x] Store event metadata separately from results
 - [x] Add calendar import status tracking
-- [ ] Import calendar into hosted Supabase
+- [x] Import calendar into hosted Supabase
 
 ---
 
@@ -101,7 +101,7 @@ Initial tables:
 - [x] Preserve source URLs
 - [x] Add import batch tracking
 - [x] Add explicit local/hosted import target guards
-- [ ] Import first real race into hosted Supabase
+- [x] Import first real race into hosted Supabase
 - [ ] Add broader multi-race import loop
 - [ ] Add better athlete matching/review workflow
 
@@ -154,15 +154,15 @@ Initial tables:
 
 ## Frontend
 
-- [ ] Replace default Next.js starter page
-- [ ] Create homepage
+- [x] Replace default Next.js starter page
+- [x] Create homepage
 - [ ] Create championship rankings pages
 - [ ] Create Elo/power ranking pages
 - [ ] Create athlete pages
-- [ ] Create race pages
-- [ ] Create methodology page
-- [ ] Create race calendar page from master race document
-- [ ] Add championship-race badge/display
+- [x] Create race pages
+- [x] Create methodology page
+- [x] Create race calendar page from master race document
+- [x] Add championship-race badge/display
 - [ ] Add category filters
 - [ ] Make tables mobile-friendly
 
@@ -172,10 +172,10 @@ Initial tables:
 
 - [x] Connect frontend to Vercel
 - [x] Verify basic production deployment
-- [ ] Connect frontend to Supabase
+- [x] Connect frontend to Supabase
 - [ ] Add final production environment variables
 - [ ] Verify Supabase-backed production pages
-- [ ] Add deployment workflow/checklist
+- [x] Add deployment workflow/checklist
 
 ---
 
@@ -186,9 +186,9 @@ Initial tables:
 - [x] Ask Codex to verify the database schema supports the master race document
 - [x] Ask Codex to add missing schema fields via migration if needed
 - [x] Ask Codex to seed local Supabase with the master race document
-- [ ] Push schema migrations to hosted Supabase
-- [ ] Seed hosted Supabase with the master race document
-- [ ] Import Puffin Run into hosted Supabase
+- [x] Push schema migrations to hosted Supabase
+- [x] Seed hosted Supabase with the master race document
+- [x] Import Puffin Run into hosted Supabase
 - [ ] Commit and push the importer + schema changes
 - [ ] Confirm Vercel redeploys automatically after frontend changes
 

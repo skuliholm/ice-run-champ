@@ -33,6 +33,8 @@ SUPABASE_URL="https://..." SUPABASE_SERVICE_ROLE_KEY="..." npm run import:schedu
 SUPABASE_URL="https://..." SUPABASE_SERVICE_ROLE_KEY="..." npm run import:timataka:db -- --target hosted --race-id 13
 ```
 
+The hosted project has been verified with the schedule import and Puffin Run import.
+
 ## Targets And Secrets
 
 Import scripts default to `--target local`.
@@ -51,7 +53,7 @@ The first real race import is The Puffin Run:
 npm run import:timataka:db -- --target local --race-id 13
 ```
 
-Expected counts after local schedule + Puffin import:
+Expected counts after local or hosted schedule + Puffin import:
 
 - `events`: 98
 - `races`: 188
@@ -73,4 +75,3 @@ node --check scripts/import-timataka-db.mjs
 npm run lint
 npm run data:validate
 ```
-
