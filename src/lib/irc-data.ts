@@ -13,6 +13,11 @@ export function formatRaceDistance(meters: number) {
   return `${(meters / 1000).toFixed(1)}K`;
 }
 
+export function formatOptionalRaceDistance(meters: number | null, label?: string | null) {
+  if (meters == null) return label ?? "Timed race";
+  return formatRaceDistance(meters);
+}
+
 export function formatDate(value: string) {
   return new Intl.DateTimeFormat("en", {
     month: "short",
