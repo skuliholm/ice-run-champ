@@ -273,7 +273,7 @@ async function upsertRawResults(supabase, raceId, batchId, results) {
     raw_name: result.name,
     raw_club: result.club,
     raw_rank: String(result.rankOverall),
-    raw_time: result.chiptime ?? result.time,
+    raw_time: result.time,
     raw_category: result.genderCategory,
     raw_payload: result,
   }));

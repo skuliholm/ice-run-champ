@@ -15,6 +15,8 @@ This document records V1 data decisions that should not depend on chat history.
 
 - `raw_results` stores the imported Timataka row and full raw payload.
 - `cleaned_results` stores normalized result fields used by app logic.
+- Timataka `Time` is gun time and is the authoritative finish time for placing, time behind, scoring, and `cleaned_results.finish_seconds`.
+- Timataka `Chiptime` is retained in the raw payload for display/reference only and must not drive standings or finish ordering.
 - `import_batches` records each result import attempt.
 - `import_status` on events/races tracks whether results are pending, available, or imported.
 
@@ -44,4 +46,3 @@ This avoids collisions like two different athletes named `Ólafur Gylfason` in t
 - Writes are service-role only.
 - Service-role keys must never be committed.
 - Import scripts require explicit hosted credentials in the shell and do not read `.env.local` for service-role writes.
-

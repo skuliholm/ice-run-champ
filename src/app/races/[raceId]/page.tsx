@@ -84,7 +84,7 @@ export default async function RacePage({ params }: { params: Promise<{ raceId: s
                   <th className="px-4 py-3">Bib</th>
                   <th className="px-4 py-3">Athlete</th>
                   <th className="px-4 py-3">Club</th>
-                  <th className="px-4 py-3 text-right">Chiptime</th>
+                  <th className="px-4 py-3 text-right">Time</th>
                   <th className="px-4 py-3 text-right">Behind</th>
                 </tr>
               </thead>
@@ -194,7 +194,7 @@ function LiveRacePage({ race }: LiveRacePageProps) {
                     <th className="px-4 py-3">Bib</th>
                     <th className="px-4 py-3">Athlete</th>
                     <th className="px-4 py-3">Club</th>
-                    <th className="px-4 py-3 text-right">Chiptime</th>
+                    <th className="px-4 py-3 text-right">Time</th>
                     <th className="px-4 py-3 text-right">Behind</th>
                   </tr>
                 </thead>
@@ -211,7 +211,7 @@ function LiveRacePage({ race }: LiveRacePageProps) {
                         <span className="font-medium">{result.name}</span>
                       </td>
                       <td className="px-4 py-3 text-slate-600">{result.club ?? "Unattached"}</td>
-                      <td className="px-4 py-3 text-right font-mono">{result.chiptime ?? "-"}</td>
+                      <td className="px-4 py-3 text-right font-mono">{result.time ?? "-"}</td>
                       <td className="px-4 py-3 text-right font-mono text-slate-500">
                         {result.behind ?? "-"}
                       </td>

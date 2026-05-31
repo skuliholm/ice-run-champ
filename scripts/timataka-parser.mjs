@@ -112,27 +112,50 @@ function parseRowsFromTable(html) {
   const trMatches = html.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi);
   for (const trMatch of trMatches) {
     const cells = [...trMatch[1].matchAll(/<t[dh]\b[^>]*>([\s\S]*?)<\/t[dh]>/gi)]
-      .map((cell) => textFromHtml(cell[1]))
-      .filter(Boolean);
-    if (cells.length >= 5) rows.push(cells);
+      .map((cell) => textFromHtml(cell[1]));
+    if (cells.length >= 5 && cells.some(Boolean)) rows.push(cells);
   }
   return rows;
 }
 
-function splitResultRow(cells) {
-  const [rank, bib, name, birthYear, ...remaining] = cells;
+function normalizeHeader(value) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+
+function resultRowsFromTableRows(tableRows) {
+  const headerIndex = tableRows.findIndex((cells) => {
+    const headers = new Set(cells.map(normalizeHeader));
+    return headers.has("rank") && headers.has("bib") && headers.has("name") && headers.has("year");
+  });
+
+  if (headerIndex === -1) return [];
+
+  const headers = tableRows[headerIndex].map(normalizeHeader);
+  return tableRows.slice(headerIndex + 1).map((cells) => splitResultRow(headers, cells)).filter(Boolean);
+}
+
+function cellValue(row, headers, header) {
+  const index = headers.indexOf(header);
+  if (index === -1) return null;
+  const value = row[index];
+  return value && value !== "-" ? value : null;
+}
+
+function splitResultRow(headers, cells) {
+  const rank = cellValue(cells, headers, "rank");
+  const bib = cellValue(cells, headers, "bib");
+  const name = cellValue(cells, headers, "name");
+  const birthYear = cellValue(cells, headers, "year");
   const rankNumber = Number(rank);
   const bibNumber = Number(bib);
   const yearNumber = Number(birthYear);
   if (!Number.isInteger(rankNumber) || !Number.isInteger(bibNumber)) return null;
 
-  const firstTailCellIsSplit = /\d{2}:\d{2}.*\([^)]+\)/.test(remaining[0] ?? "");
-  const club = firstTailCellIsSplit ? null : remaining[0];
-  const split = firstTailCellIsSplit ? remaining[0] : remaining[1];
-  const timeCells = firstTailCellIsSplit ? remaining.slice(1) : remaining.slice(2);
-  const [time, maybeBehind, maybeChiptime] = timeCells;
-  const behind = maybeBehind?.startsWith("+") ? maybeBehind : null;
-  const chiptime = behind ? maybeChiptime : maybeBehind;
+  const club = cellValue(cells, headers, "club");
+  const split = cellValue(cells, headers, "split");
+  const time = cellValue(cells, headers, "time");
+  const behind = cellValue(cells, headers, "behind");
+  const chiptime = cellValue(cells, headers, "chiptime");
 
   if (!name || !/\d{2}:\d{2}/.test(time ?? "")) return null;
 
@@ -145,8 +168,8 @@ function splitResultRow(cells) {
     splits: parseSplits(split ?? ""),
     time: time ?? null,
     behind,
-    chiptime: chiptime && chiptime !== "-" ? chiptime : time ?? null,
-    finishSeconds: parseDurationToSeconds(chiptime || time),
+    chiptime,
+    finishSeconds: parseDurationToSeconds(time),
     rawCells: cells,
   };
 }
@@ -186,7 +209,7 @@ export function parseTimatakaResults(
 ) {
   const pageText = textFromHtml(html);
   const tableRows = parseRowsFromTable(html);
-  const parsedRows = tableRows.map(splitResultRow).filter(Boolean);
+  const parsedRows = resultRowsFromTableRows(tableRows);
 
   if (parsedRows.length === 0) {
     throw new Error("No Timataka result rows were found in the supplied HTML.");

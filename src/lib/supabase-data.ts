@@ -85,6 +85,7 @@ export type LiveRaceResult = {
   birthYear: number | null;
   club: string | null;
   genderCategory: string;
+  time: string | null;
   chiptime: string | null;
   behind: string | null;
   finishSeconds: number | null;
@@ -190,12 +191,9 @@ function mapResultRow(row: SupabaseResultRow): LiveRaceResult {
     birthYear: athlete?.birth_year ?? null,
     club: club?.name ?? (typeof raw.club === "string" ? raw.club : null),
     genderCategory: row.gender ?? row.category ?? "unknown",
-    chiptime:
-      typeof raw.chiptime === "string"
-        ? raw.chiptime
-        : finishSeconds == null
-          ? null
-          : formatSeconds(finishSeconds),
+    time:
+      typeof raw.time === "string" ? raw.time : finishSeconds == null ? null : formatSeconds(finishSeconds),
+    chiptime: typeof raw.chiptime === "string" ? raw.chiptime : null,
     behind: typeof raw.behind === "string" ? raw.behind : null,
     finishSeconds,
   };
