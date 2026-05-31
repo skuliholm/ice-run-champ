@@ -208,7 +208,16 @@ function LiveRacePage({ race }: LiveRacePageProps) {
                       <td className="px-4 py-3 text-slate-600">{result.rankGender ?? "-"}</td>
                       <td className="px-4 py-3 text-slate-600">{result.bib ?? "-"}</td>
                       <td className="px-4 py-3">
-                        <span className="font-medium">{result.name}</span>
+                        {result.athleteId ? (
+                          <Link
+                            href={`/athletes/${result.athleteId}`}
+                            className="font-medium hover:text-emerald-700"
+                          >
+                            {result.name}
+                          </Link>
+                        ) : (
+                          <span className="font-medium">{result.name}</span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-slate-600">{result.club ?? "Unattached"}</td>
                       <td className="px-4 py-3 text-right font-mono">{result.time ?? "-"}</td>
