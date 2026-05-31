@@ -62,6 +62,37 @@ type SupabaseResultRow = {
     | null;
 };
 
+type SupabaseStandingRow = {
+  rank_gender: number | null;
+  gender: string | null;
+  athletes:
+    | {
+        id: string;
+        full_name: string;
+      }
+    | Array<{
+        id: string;
+        full_name: string;
+      }>
+    | null;
+  clubs:
+    | {
+        name: string;
+      }
+    | Array<{
+        name: string;
+      }>
+    | null;
+  races:
+    | {
+        source_race_id: string | null;
+      }
+    | Array<{
+        source_race_id: string | null;
+      }>
+    | null;
+};
+
 export type LiveRaceCard = {
   id: string;
   name: string;
@@ -93,6 +124,16 @@ export type LiveRaceResult = {
 
 export type LiveRaceDetail = LiveRaceCard & {
   results: LiveRaceResult[];
+};
+
+export type LiveStandingRow = {
+  rank: number;
+  athleteId: string;
+  athleteName: string;
+  club: string | null;
+  totalPoints: number;
+  racesCount: number;
+  bestRank: number | null;
 };
 
 function publicSupabase() {
@@ -160,6 +201,28 @@ export async function getLiveRaceDetail(raceId: string): Promise<LiveRaceDetail 
   };
 }
 
+export async function getLiveProvisionalStandings(): Promise<{
+  men: LiveStandingRow[];
+  women: LiveStandingRow[];
+}> {
+  const supabase = publicSupabase();
+  if (!supabase) return { men: [], women: [] };
+
+  const { data, error } = await supabase
+    .from("cleaned_results")
+    .select("rank_gender, gender, athletes(id, full_name), clubs(name), races(source_race_id)")
+    .in("gender", ["m", "f"])
+    .not("rank_gender", "is", null);
+
+  if (error || !data) return { men: [], women: [] };
+
+  const rows = data as SupabaseStandingRow[];
+  return {
+    men: buildStandings(rows.filter((row) => row.gender === "m")),
+    women: buildStandings(rows.filter((row) => row.gender === "f")),
+  };
+}
+
 function mapRaceRow(row: SupabaseRaceRow): LiveRaceCard {
   const event = firstValue(row.events);
   return {
@@ -197,6 +260,61 @@ function mapResultRow(row: SupabaseResultRow): LiveRaceResult {
     behind: typeof raw.behind === "string" ? raw.behind : null,
     finishSeconds,
   };
+}
+
+function buildStandings(rows: SupabaseStandingRow[]) {
+  const byAthlete = new Map<
+    string,
+    {
+      athleteId: string;
+      athleteName: string;
+      club: string | null;
+      totalPoints: number;
+      raceIds: Set<string>;
+      bestRank: number | null;
+    }
+  >();
+
+  for (const row of rows) {
+    const athlete = firstValue(row.athletes);
+    if (!athlete || row.rank_gender == null) continue;
+    const club = firstValue(row.clubs);
+    const race = firstValue(row.races);
+    const current =
+      byAthlete.get(athlete.id) ??
+      {
+        athleteId: athlete.id,
+        athleteName: athlete.full_name,
+        club: club?.name ?? null,
+        totalPoints: 0,
+        raceIds: new Set<string>(),
+        bestRank: null,
+      };
+
+    current.totalPoints += Math.max(0, 101 - row.rank_gender);
+    if (race?.source_race_id) current.raceIds.add(race.source_race_id);
+    current.bestRank = current.bestRank == null ? row.rank_gender : Math.min(current.bestRank, row.rank_gender);
+    if (!current.club && club?.name) current.club = club.name;
+    byAthlete.set(athlete.id, current);
+  }
+
+  return [...byAthlete.values()]
+    .sort(
+      (a, b) =>
+        b.totalPoints - a.totalPoints ||
+        b.raceIds.size - a.raceIds.size ||
+        (a.bestRank ?? Number.POSITIVE_INFINITY) - (b.bestRank ?? Number.POSITIVE_INFINITY) ||
+        a.athleteName.localeCompare(b.athleteName),
+    )
+    .map((row, index) => ({
+      rank: index + 1,
+      athleteId: row.athleteId,
+      athleteName: row.athleteName,
+      club: row.club,
+      totalPoints: row.totalPoints,
+      racesCount: row.raceIds.size,
+      bestRank: row.bestRank,
+    }));
 }
 
 function formatSeconds(totalSeconds: number) {

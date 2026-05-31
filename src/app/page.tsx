@@ -2,14 +2,16 @@ import Link from "next/link";
 import { SiteHeader } from "@/app/_components/site-header";
 import { StatusPill } from "@/app/_components/status-pill";
 import { formatDate, formatOptionalRaceDistance, formatRaceDistance, ircData, topResults } from "@/lib/irc-data";
-import { getLiveRaceCalendar } from "@/lib/supabase-data";
+import { getLiveProvisionalStandings, getLiveRaceCalendar } from "@/lib/supabase-data";
 
 export default async function Home() {
-  const liveRaces = await getLiveRaceCalendar();
+  const [liveRaces, liveStandings] = await Promise.all([
+    getLiveRaceCalendar(),
+    getLiveProvisionalStandings(),
+  ]);
   const realRace = ircData.races.find((race) => !race.isMock) ?? ircData.races[0];
-  const topMen = ircData.menStandings.slice(0, 8);
-  const topWomen = ircData.womenStandings.slice(0, 8);
-  const topElo = ircData.eloRankings.slice(0, 8);
+  const topMen = liveStandings.men.length ? liveStandings.men.slice(0, 8) : ircData.menStandings.slice(0, 8);
+  const topWomen = liveStandings.women.length ? liveStandings.women.slice(0, 8) : ircData.womenStandings.slice(0, 8);
   const importedRaceCount = liveRaces.filter((race) => race.importStatus === "imported").length;
   const resultLinkCount = liveRaces.filter((race) => race.sourceUrl).length;
   const featuredLiveRace = liveRaces.find((race) => race.importStatus === "imported");
@@ -31,15 +33,20 @@ export default async function Home() {
                 <StatusPill tone="emerald">
                   {liveRaces.length ? `${liveRaces.length} Supabase races` : "One real Timataka race"}
                 </StatusPill>
-                <StatusPill tone="amber">Prototype standings</StatusPill>
+                <StatusPill tone={liveStandings.men.length || liveStandings.women.length ? "emerald" : "amber"}>
+                  {liveStandings.men.length || liveStandings.women.length
+                    ? "Live provisional standings"
+                    : "Prototype standings"}
+                </StatusPill>
                 <StatusPill tone="blue">Provisional V1 rules</StatusPill>
               </div>
               <h1 className="max-w-3xl text-4xl font-semibold tracking-normal text-slate-950 sm:text-5xl">
                 Icelandic running standings from real race data.
               </h1>
               <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">
-                The race calendar now comes from the hosted Supabase import pipeline. Standings
-                remain a prototype layer until scoring and eligibility rules are finalized.
+                The race calendar and provisional standings now come from the hosted Supabase
+                import pipeline. Scoring is intentionally simple while eligibility and tier rules
+                are finalized.
               </p>
               <div className="mt-8 grid max-w-3xl grid-cols-2 gap-3 sm:grid-cols-4">
                 <Metric label="Finishers" value={String(realRace.finished ?? realRace.results.length)} />
@@ -82,10 +89,16 @@ export default async function Home() {
         </section>
 
         <section id="standings" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-          <div className="grid gap-6 xl:grid-cols-3">
-            <RankingTable title="Men's Championship" rows={topMen} valueLabel="Pts" />
-            <RankingTable title="Women's Championship" rows={topWomen} valueLabel="Pts" />
-            <RankingTable title="Overall Elo Power Ranking" rows={topElo} valueLabel="Elo" isElo />
+          <div className="mb-6">
+            <h2 className="text-2xl font-semibold">Provisional Standings</h2>
+            <p className="mt-1 max-w-3xl text-sm text-slate-600">
+              Live imported results scored as 101 minus gender placing. Race tiers, eligibility,
+              best-result limits, and Elo are not applied yet.
+            </p>
+          </div>
+          <div className="grid gap-6 xl:grid-cols-2">
+            <RankingTable title="Men" rows={topMen} valueLabel="Pts" />
+            <RankingTable title="Women" rows={topWomen} valueLabel="Pts" />
           </div>
         </section>
 
@@ -157,8 +170,8 @@ export default async function Home() {
         </section>
 
         <section className="mx-auto max-w-7xl px-4 py-8 text-sm text-slate-500 sm:px-6 lg:px-8">
-          Race calendar reads from Supabase when public env vars are available. Standings data
-          generated {formatDate(ircData.generatedAt.slice(0, 10))}; mock races are not official results.
+          Race calendar and provisional standings read from Supabase when public env vars are
+          available. Fallback mock standings generated {formatDate(ircData.generatedAt.slice(0, 10))}.
         </section>
       </main>
     </>
@@ -188,6 +201,7 @@ function RankingTable({
     club: string | null;
     totalPoints?: number;
     rating?: number;
+    racesCount?: number;
   }>;
   valueLabel: string;
   isElo?: boolean;
@@ -204,6 +218,7 @@ function RankingTable({
               <th className="w-14 px-4 py-3">Rank</th>
               <th className="px-4 py-3">Athlete</th>
               <th className="px-4 py-3">Club</th>
+              <th className="px-4 py-3 text-right">Races</th>
               <th className="px-4 py-3 text-right">{valueLabel}</th>
             </tr>
           </thead>
@@ -222,6 +237,7 @@ function RankingTable({
                     </Link>
                   </td>
                   <td className="px-4 py-3 text-slate-600">{row.club ?? "Unattached"}</td>
+                  <td className="px-4 py-3 text-right font-mono">{row.racesCount ?? "-"}</td>
                   <td className="px-4 py-3 text-right font-mono">
                     {isElo ? row.rating?.toFixed(0) : row.totalPoints?.toFixed(1)}
                   </td>
