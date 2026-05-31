@@ -64,6 +64,42 @@ Expected counts after local or hosted schedule + Puffin import:
 
 The importer is idempotent for the verified Puffin path. Re-running the same schedule and Timataka imports should not increase those counts.
 
+## Batch Timataka Imports
+
+Use the batch importer to import scheduled Timataka races that have result URLs.
+
+Start with a dry run:
+
+```sh
+npm run import:timataka:batch -- --target local --dry-run
+```
+
+Import a small local batch:
+
+```sh
+npm run import:timataka:batch -- --target local --limit 5
+```
+
+Import every remaining local Timataka candidate while keeping later races moving after a failed page:
+
+```sh
+npm run import:timataka:batch -- --target local --all --continue-on-error
+```
+
+Review imported counts and likely athlete identity collisions:
+
+```sh
+npm run review:imports -- --target local
+```
+
+Hosted batch imports use the same shell-provided service-role credentials as single-race imports:
+
+```sh
+SUPABASE_URL="https://..." SUPABASE_SERVICE_ROLE_KEY="..." npm run import:timataka:batch -- --target hosted --dry-run
+SUPABASE_URL="https://..." SUPABASE_SERVICE_ROLE_KEY="..." npm run import:timataka:batch -- --target hosted --limit 5
+SUPABASE_URL="https://..." SUPABASE_SERVICE_ROLE_KEY="..." npm run review:imports -- --target hosted
+```
+
 ## Validation
 
 Use these checks after import changes:
@@ -72,6 +108,8 @@ Use these checks after import changes:
 node --check scripts/import-utils.mjs
 node --check scripts/import-schedule.mjs
 node --check scripts/import-timataka-db.mjs
+npm run import:timataka:batch -- --target local --dry-run
+npm run review:imports -- --target local
 npm run lint
 npm run data:validate
 ```

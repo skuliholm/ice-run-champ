@@ -3,10 +3,12 @@ import {
   parseArgs,
   throwIfSupabaseError,
 } from "./import-utils.mjs";
+import { pathToFileURL } from "node:url";
+import { applyTimatakaCorrections } from "./import-corrections.mjs";
 import { parseTimatakaResults, timatakaCategoryUrl } from "./timataka-parser.mjs";
 
 // Operational notes and safety rules live in docs/import_pipeline.md.
-async function fetchCategory(sourceUrl, category, metadata) {
+export async function fetchCategory(sourceUrl, category, metadata) {
   const categoryUrl = timatakaCategoryUrl(sourceUrl, category);
   const response = await fetch(categoryUrl, {
     headers: {
@@ -21,7 +23,7 @@ async function fetchCategory(sourceUrl, category, metadata) {
   return parseTimatakaResults(await response.text(), categoryUrl, category, metadata);
 }
 
-async function main() {
+export async function main() {
   const args = parseArgs();
   const scheduleRaceId = args["source-race-id"] ?? (args["race-id"] ? `schedule-2026-${args["race-id"]}` : null);
   if (!scheduleRaceId) {
@@ -30,10 +32,13 @@ async function main() {
 
   const supabase = createServiceClient({ target: args.target ?? "local" });
   const race = await findRace(supabase, scheduleRaceId);
+  await importRaceResults(supabase, race);
+}
+
+export async function importRaceResults(supabase, race) {
   if (!race.source_url) {
     throw new Error(`Race ${race.source_race_id} does not have a Timataka result URL.`);
   }
-
   const metadata = {
     event: {
       id: race.event.source_event_id,
@@ -71,10 +76,7 @@ async function main() {
     );
     batchId = batch.id;
 
-    const overall = await fetchCategory(race.source_url, race.category || "overall", metadata);
-    const male = await fetchCategory(race.source_url, "m", metadata);
-    const female = await fetchCategory(race.source_url, "f", metadata);
-    const results = mergeGenderResults(overall.results, male.results, female.results);
+    const results = await fetchRaceResults(race, metadata);
 
     const clubIdByName = await upsertClubs(supabase, results);
     const athleteIdByKey = await upsertAthletes(supabase, results, clubIdByName);
@@ -110,6 +112,12 @@ async function main() {
     console.log(
       `Imported ${results.length} Timataka finishers into Supabase for ${race.name} (${race.source_race_id}).`,
     );
+    return {
+      raceId: race.id,
+      sourceRaceId: race.source_race_id,
+      name: race.name,
+      finishers: results.length,
+    };
   } catch (error) {
     if (batchId) {
       await supabase
@@ -125,7 +133,22 @@ async function main() {
   }
 }
 
-async function findRace(supabase, scheduleRaceId) {
+async function fetchRaceResults(race, metadata) {
+  if (race.category === "m" || race.category === "f") {
+    const categoryResults = await fetchCategory(race.source_url, race.category, metadata);
+    return applyTimatakaCorrections(race.source_race_id, categoryResults.results);
+  }
+
+  const overall = await fetchCategory(race.source_url, race.category || "overall", metadata);
+  const male = await fetchCategory(race.source_url, "m", metadata);
+  const female = await fetchCategory(race.source_url, "f", metadata);
+  return applyTimatakaCorrections(
+    race.source_race_id,
+    mergeGenderResults(overall.results, male.results, female.results),
+  );
+}
+
+export async function findRace(supabase, scheduleRaceId) {
   let query = supabase
     .from("races")
     .select("*, event:events(*)")
@@ -150,7 +173,7 @@ async function findRace(supabase, scheduleRaceId) {
   return race;
 }
 
-function mergeGenderResults(overallResults, maleResults, femaleResults) {
+export function mergeGenderResults(overallResults, maleResults, femaleResults) {
   const genderByAthlete = new Map();
   for (const result of maleResults) {
     genderByAthlete.set(result.athleteId, { genderCategory: "m", rankGender: result.rankOverall });
@@ -266,10 +289,13 @@ async function upsertRawResults(supabase, raceId, batchId, results) {
 }
 
 async function upsertCleanedResults(supabase, raceId, results, athleteIdByKey, clubIdByName, rawIdByRow) {
+  const seenAthleteIds = new Set();
   const rows = results
     .map((result, index) => {
       const athleteId = athleteIdByKey.get(`${result.normalizedName}-${result.birthYear ?? "unknown"}`);
       if (!athleteId) return null;
+      if (seenAthleteIds.has(athleteId)) return null;
+      seenAthleteIds.add(athleteId);
       return {
         race_id: raceId,
         raw_result_id: rawIdByRow.get(index + 1),
@@ -294,7 +320,9 @@ async function upsertCleanedResults(supabase, raceId, results, athleteIdByKey, c
   );
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}

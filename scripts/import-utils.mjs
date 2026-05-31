@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { createClient } from "@supabase/supabase-js";
 
 function unquoteEnvValue(value) {
@@ -181,21 +181,24 @@ function validateTargetUrl(target, urlValue) {
 }
 
 function readSupabaseStatusEnv() {
-  try {
-    const output = execFileSync("supabase", ["status", "-o", "env"], {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
-    });
-    return Object.fromEntries(
-      output
-        .split(/\r?\n/)
-        .map((line) => line.match(/^([A-Z0-9_]+)=(.*)$/))
-        .filter(Boolean)
-        .map((match) => [match[1], unquoteEnvValue(match[2])]),
-    );
-  } catch {
+  const result = spawnSync("supabase", ["status", "-o", "env"], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  const output = `${result.stdout ?? ""}\n${result.stderr ?? ""}`;
+  const env = Object.fromEntries(
+    output
+      .split(/\r?\n/)
+      .map((line) => line.match(/^([A-Z0-9_]+)=(.*)$/))
+      .filter(Boolean)
+      .map((match) => [match[1], unquoteEnvValue(match[2])]),
+  );
+
+  if (!env.SERVICE_ROLE_KEY) {
     return {};
   }
+
+  return env;
 }
 
 export function throwIfSupabaseError(result, label) {

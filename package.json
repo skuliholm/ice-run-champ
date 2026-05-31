@@ -9,6 +9,8 @@
     "import:timataka": "node scripts/import-timataka.mjs",
     "import:schedule": "node scripts/import-schedule.mjs",
     "import:timataka:db": "node scripts/import-timataka-db.mjs",
+    "import:timataka:batch": "node scripts/import-timataka-batch-db.mjs",
+    "review:imports": "node scripts/review-imports.mjs",
     "seed:mock-races": "node scripts/generate-mock-races.mjs",
     "data:refresh": "npm run import:timataka && npm run seed:mock-races",
     "data:validate": "node scripts/validate-data.mjs",

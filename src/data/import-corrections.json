@@ -1,0 +1,53 @@
+{
+  "timataka": [
+    {
+      "sourceRaceId": "schedule-2026-1-10-overall",
+      "normalizedName": "iris anna skuladottir",
+      "birthYear": 1989,
+      "genderCategory": "f",
+      "reason": "Manual review confirmed athlete is a woman."
+    },
+    {
+      "sourceRaceId": "schedule-2026-14-7-5-overall",
+      "normalizedName": "iris dora snorradottir",
+      "birthYear": 1991,
+      "genderCategory": "f",
+      "reason": "Manual review confirmed athlete is a woman."
+    },
+    {
+      "sourceRaceId": "schedule-2026-18-5-overall",
+      "normalizedName": "fri a hrund kristinsdottir",
+      "birthYear": 1982,
+      "genderCategory": "f",
+      "reason": "Manual review confirmed athlete is a woman."
+    },
+    {
+      "sourceRaceId": "schedule-2026-16-10-overall",
+      "normalizedName": "olga deffner",
+      "birthYear": 1982,
+      "genderCategory": "f",
+      "reason": "Manual review confirmed athlete is a woman."
+    },
+    {
+      "sourceRaceId": "schedule-2026-17-17-overall",
+      "normalizedName": "hulda fanny palsdottir",
+      "birthYear": 2002,
+      "genderCategory": "f",
+      "reason": "Manual review confirmed athlete is a woman."
+    },
+    {
+      "sourceRaceId": "schedule-2026-5-10-overall",
+      "normalizedName": "eyrun eva ey orsdottir",
+      "birthYear": 1992,
+      "genderCategory": "f",
+      "reason": "Manual review confirmed athlete is a woman."
+    },
+    {
+      "sourceRaceId": "schedule-2026-18-5-overall",
+      "normalizedName": "johanna magnusdottir",
+      "birthYear": 1984,
+      "genderCategory": "f",
+      "reason": "Manual review confirmed athlete is a woman."
+    }
+  ]
+}
