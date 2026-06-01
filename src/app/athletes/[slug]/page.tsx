@@ -14,6 +14,18 @@ import {
 } from "@/lib/irc-data";
 import { getLiveAthleteDetail } from "@/lib/supabase-data";
 
+type AthleteResultRow = {
+  raceId: string;
+  eventName: string;
+  date: string;
+  distance: string;
+  category: string;
+  rankOverall: number | null;
+  rankGender: number | null;
+  time: string | null;
+  points?: number;
+};
+
 export function generateStaticParams() {
   return ircData.athletes.map((athlete) => ({ slug: athlete.slug }));
 }
@@ -21,159 +33,169 @@ export function generateStaticParams() {
 export default async function AthletePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const liveAthlete = await getLiveAthleteDetail(slug);
-  if (liveAthlete) return <LiveAthletePage athlete={liveAthlete} />;
+  if (liveAthlete) {
+    return (
+      <AthleteDetail
+        name={liveAthlete.fullName}
+        club={liveAthlete.club}
+        birthYear={liveAthlete.birthYear}
+        category={formatGenderCategory(liveAthlete.gender ?? "unknown")}
+        rank={null}
+        elo={null}
+        points={liveAthlete.totalPoints}
+        racesCount={liveAthlete.racesCount}
+        results={liveAthlete.results.map((result) => ({
+          raceId: result.raceId,
+          eventName: result.eventName,
+          date: result.date,
+          distance: formatOptionalRaceDistance(result.distanceMeters, result.distanceLabel),
+          category: formatGenderCategory(result.genderCategory),
+          rankOverall: result.rankOverall,
+          rankGender: result.rankGender,
+          time: result.time,
+          points: result.points,
+        }))}
+      />
+    );
+  }
 
   const athlete = getAthleteBySlug(slug);
   if (!athlete) notFound();
 
-  const results = getAthleteResults(athlete.id);
   const standing = getAthleteStanding(athlete.id);
   const elo = getAthleteElo(athlete.id);
+  const results = getAthleteResults(athlete.id).map(({ race, result }) => ({
+    raceId: race.id,
+    eventName: race.event.name,
+    date: race.event.date,
+    distance: formatRaceDistance(race.distanceMeters),
+    category: formatGenderCategory(result.genderCategory),
+    rankOverall: result.rankOverall,
+    rankGender: result.rankGender,
+    time: result.chiptime,
+    points: standing ? Math.max(0, 101 - (result.rankGender ?? 101)) : undefined,
+  }));
 
   return (
-    <>
-      <SiteHeader />
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mb-6">
-          <Link href="/" className="text-sm font-semibold text-emerald-700">
-            Back to standings
-          </Link>
-        </div>
-        <section className="grid gap-6 lg:grid-cols-[0.75fr_1.25fr]">
-          <div className="rounded border border-slate-200 bg-white p-6">
-            <h1 className="text-3xl font-semibold">{athlete.fullName}</h1>
-            <dl className="mt-6 grid grid-cols-2 gap-3">
-              <AthleteMetric label="Club" value={athlete.club ?? "Unattached"} />
-              <AthleteMetric label="Born" value={String(athlete.birthYear)} />
-              <AthleteMetric label="Champ rank" value={standing ? String(standing.rank) : "-"} />
-              <AthleteMetric label="Elo rank" value={elo ? String(elo.rank) : "-"} />
-              <AthleteMetric label="Points" value={standing ? standing.totalPoints.toFixed(1) : "-"} />
-              <AthleteMetric label="Elo" value={elo ? elo.rating.toFixed(0) : "-"} />
-            </dl>
-          </div>
-          <div className="overflow-hidden rounded border border-slate-200 bg-white">
-            <div className="border-b border-slate-200 px-5 py-4">
-              <h2 className="text-xl font-semibold">Race History</h2>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-                  <tr>
-                    <th className="px-4 py-3">Date</th>
-                    <th className="px-4 py-3">Race</th>
-                    <th className="px-4 py-3">Distance</th>
-                    <th className="px-4 py-3 text-right">Rank</th>
-                    <th className="px-4 py-3 text-right">Time</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {results.map(({ race, result }) => (
-                    <tr key={race.id}>
-                      <td className="px-4 py-3 text-slate-600">{formatDate(race.event.date)}</td>
-                      <td className="px-4 py-3">
-                        <Link href={`/races/${race.id}`} className="font-medium hover:text-emerald-700">
-                          {race.event.name}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3 text-slate-600">
-                        {formatRaceDistance(race.distanceMeters)}
-                      </td>
-                      <td className="px-4 py-3 text-right font-semibold">{result.rankOverall}</td>
-                      <td className="px-4 py-3 text-right font-mono">{result.chiptime}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-      </main>
-    </>
+    <AthleteDetail
+      name={athlete.fullName}
+      club={athlete.club}
+      birthYear={athlete.birthYear}
+      category={formatGenderCategory(athlete.genderCategory)}
+      rank={standing?.rank ?? null}
+      elo={elo?.rating ?? null}
+      points={standing?.totalPoints ?? null}
+      racesCount={standing?.racesCount ?? results.length}
+      results={results}
+    />
   );
 }
 
-type LiveAthletePageProps = {
-  athlete: NonNullable<Awaited<ReturnType<typeof getLiveAthleteDetail>>>;
-};
-
-function LiveAthletePage({ athlete }: LiveAthletePageProps) {
+function AthleteDetail({
+  name,
+  club,
+  birthYear,
+  category,
+  rank,
+  elo,
+  points,
+  racesCount,
+  results,
+}: {
+  name: string;
+  club: string | null;
+  birthYear: number | null;
+  category: string;
+  rank: number | null;
+  elo: number | null;
+  points: number | null;
+  racesCount: number;
+  results: AthleteResultRow[];
+}) {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mb-6">
-          <Link href="/" className="text-sm font-semibold text-emerald-700">
-            Back to standings
-          </Link>
-        </div>
-        <section className="grid gap-6 lg:grid-cols-[0.75fr_1.25fr]">
-          <div className="rounded border border-slate-200 bg-white p-6">
-            <p className="text-sm font-semibold text-emerald-700">Live Supabase profile</p>
-            <h1 className="mt-2 text-3xl font-semibold">{athlete.fullName}</h1>
-            <dl className="mt-6 grid grid-cols-2 gap-3">
-              <AthleteMetric label="Club" value={athlete.club ?? "Unattached"} />
-              <AthleteMetric label="Born" value={athlete.birthYear == null ? "-" : String(athlete.birthYear)} />
-              <AthleteMetric label="Category" value={formatGenderCategory(athlete.gender ?? "unknown")} />
-              <AthleteMetric label="Races" value={String(athlete.racesCount)} />
-              <AthleteMetric label="Best rank" value={athlete.bestRank == null ? "-" : String(athlete.bestRank)} />
-              <AthleteMetric label="Points" value={athlete.totalPoints.toFixed(1)} />
+      <main>
+        <section className="border-b-2 border-[#151515] bg-[#f05a28] text-[#151515]">
+          <div className="mx-auto max-w-7xl px-6 py-5">
+            <p className="text-xs font-black uppercase tracking-wide">Athlete</p>
+            <h1 className="mt-2 text-4xl font-black leading-[0.9] tracking-[-0.065em] md:text-6xl">{name}</h1>
+          </div>
+        </section>
+
+        <section className="mx-auto grid max-w-7xl gap-8 px-6 py-8 lg:grid-cols-[0.75fr_1.25fr]">
+          <div className="border-2 border-[#151515] bg-[#f4f0e8] p-5">
+            <div className="border-b-2 border-[#151515] pb-3">
+              <h2 className="text-lg font-black tracking-tight">Profile</h2>
+            </div>
+            <dl className="mt-4 grid grid-cols-2 gap-3">
+              <AthleteMetric label="Club" value={club ?? "Unattached"} />
+              <AthleteMetric label="Born" value={birthYear == null ? "-" : String(birthYear)} />
+              <AthleteMetric label="Category" value={category} />
+              <AthleteMetric label="Races" value={String(racesCount)} />
+              <AthleteMetric label="Rank" value={rank == null ? "-" : String(rank)} />
+              <AthleteMetric label="Elo" value={elo == null ? "-" : elo.toFixed(0)} />
+              <AthleteMetric label="Pts" value={points == null ? "-" : points.toFixed(1)} />
             </dl>
           </div>
-          <div className="overflow-hidden rounded border border-slate-200 bg-white">
-            <div className="border-b border-slate-200 px-5 py-4">
-              <h2 className="text-xl font-semibold">Race History</h2>
+
+          <section className="border-2 border-[#151515] bg-white p-5">
+            <div className="mb-3 border-b-2 border-[#151515] pb-2">
+              <h2 className="text-lg font-black tracking-tight">Race history</h2>
             </div>
-            {athlete.results.length ? (
+            {results.length ? (
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+                <table className="w-full text-left text-[14px]">
+                  <thead className="text-xs uppercase tracking-wide text-[#69645d]">
                     <tr>
-                      <th className="px-4 py-3">Date</th>
-                      <th className="px-4 py-3">Race</th>
-                      <th className="px-4 py-3">Distance</th>
-                      <th className="px-4 py-3">Cat</th>
-                      <th className="px-4 py-3 text-right">Rank</th>
-                      <th className="px-4 py-3 text-right">Cat rank</th>
-                      <th className="px-4 py-3 text-right">Time</th>
-                      <th className="px-4 py-3 text-right">Pts</th>
+                      <th className="py-2 pr-3">Date</th>
+                      <th className="py-2 pr-3">Race</th>
+                      <th className="py-2 pr-3">Distance</th>
+                      <th className="py-2 pr-3">Cat</th>
+                      <th className="py-2 pr-3 text-right">Rank</th>
+                      <th className="py-2 pr-3 text-right">Cat #</th>
+                      <th className="py-2 pr-3 text-right">Time</th>
+                      <th className="py-2 text-right">Pts</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {athlete.results.map((result) => (
-                      <tr key={`${athlete.id}-${result.raceId}-${result.rankOverall}`}>
-                        <td className="px-4 py-3 text-slate-600">
+                  <tbody className="divide-y divide-[#d8d1c5]">
+                    {results.map((result) => (
+                      <tr key={`${result.raceId}-${result.rankOverall}-${result.eventName}`}>
+                        <td className="py-2 pr-3 font-semibold tabular-nums">
                           {result.date ? formatDate(result.date) : "-"}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="py-2 pr-3 font-semibold">
                           {result.raceId ? (
-                            <Link href={`/races/${result.raceId}`} className="font-medium hover:text-emerald-700">
+                            <Link className="underline-offset-4 hover:underline" href={`/races/${result.raceId}`}>
                               {result.eventName}
                             </Link>
                           ) : (
-                            <span className="font-medium">{result.eventName}</span>
+                            result.eventName
                           )}
                         </td>
-                        <td className="px-4 py-3 text-slate-600">
-                          {formatOptionalRaceDistance(result.distanceMeters, result.distanceLabel)}
+                        <td className="py-2 pr-3 text-[#69645d]">{result.distance}</td>
+                        <td className="py-2 pr-3 text-[#69645d]">{result.category}</td>
+                        <td className="py-2 pr-3 text-right font-semibold tabular-nums">
+                          {result.rankOverall ?? "-"}
                         </td>
-                        <td className="px-4 py-3 text-slate-600">
-                          {formatGenderCategory(result.genderCategory)}
+                        <td className="py-2 pr-3 text-right font-semibold tabular-nums">
+                          {result.rankGender ?? "-"}
                         </td>
-                        <td className="px-4 py-3 text-right font-semibold">{result.rankOverall ?? "-"}</td>
-                        <td className="px-4 py-3 text-right text-slate-600">{result.rankGender ?? "-"}</td>
-                        <td className="px-4 py-3 text-right font-mono">{result.time ?? "-"}</td>
-                        <td className="px-4 py-3 text-right font-mono">{result.points.toFixed(1)}</td>
+                        <td className="py-2 pr-3 text-right font-mono font-semibold tabular-nums">
+                          {result.time ?? "-"}
+                        </td>
+                        <td className="py-2 text-right font-semibold tabular-nums">
+                          {result.points == null ? "-" : result.points.toFixed(1)}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
             ) : (
-              <div className="px-5 py-8 text-sm text-slate-600">
-                No imported results are linked to this athlete yet.
-              </div>
+              <div className="py-8 text-sm font-semibold text-[#69645d]">No results listed.</div>
             )}
-          </div>
+          </section>
         </section>
       </main>
     </>
@@ -182,9 +204,9 @@ function LiveAthletePage({ athlete }: LiveAthletePageProps) {
 
 function AthleteMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded border border-slate-200 bg-slate-50 p-4">
-      <dt className="text-xs font-medium uppercase text-slate-500">{label}</dt>
-      <dd className="mt-2 text-base font-semibold">{value}</dd>
+    <div className="border border-[#151515] bg-white p-3">
+      <dt className="text-xs font-black uppercase tracking-wide text-[#69645d]">{label}</dt>
+      <dd className="mt-2 text-base font-black tabular-nums">{value}</dd>
     </div>
   );
 }

@@ -1,8 +1,16 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  --irc-paper: #f4f0e8;
+  --irc-ink: #151515;
+  --irc-muted: #69645d;
+  --irc-rule-soft: #d8d1c5;
+  --irc-accent: #f05a28;
+  --irc-white: #ffffff;
+  --irc-dark-muted: #cfc8bd;
+  --irc-body-muted: #4f4a44;
+  --background: var(--irc-paper);
+  --foreground: var(--irc-ink);
 }
 
 @theme inline {
@@ -20,4 +28,9 @@ body {
 
 html {
   scroll-behavior: smooth;
+}
+
+::selection {
+  background: var(--irc-accent);
+  color: var(--irc-ink);
 }

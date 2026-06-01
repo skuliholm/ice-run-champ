@@ -1,252 +1,282 @@
 import Link from "next/link";
 import { SiteHeader } from "@/app/_components/site-header";
-import { StatusPill } from "@/app/_components/status-pill";
-import { formatDate, formatOptionalRaceDistance, formatRaceDistance, ircData, topResults } from "@/lib/irc-data";
-import { getLiveProvisionalStandings, getLiveRaceCalendar } from "@/lib/supabase-data";
+import {
+  formatDate,
+  formatOptionalRaceDistance,
+  formatRaceDistance,
+  ircData,
+  topResults,
+} from "@/lib/irc-data";
+import { getLiveProvisionalStandings, getLiveRaceCalendar, getLiveRaceDetail } from "@/lib/supabase-data";
+
+type RankingRow = {
+  rank: number;
+  athleteId: string;
+  athleteName: string;
+  totalPoints?: number;
+  rating?: number;
+};
+
+type ResultRow = {
+  rankOverall: number | null;
+  rankGender: number | null;
+  athleteId: string | null;
+  name: string;
+  genderCategory: string;
+  time: string | null;
+  chiptime: string | null;
+};
 
 export default async function Home() {
   const [liveRaces, liveStandings] = await Promise.all([
     getLiveRaceCalendar(),
     getLiveProvisionalStandings(),
   ]);
-  const realRace = ircData.races.find((race) => !race.isMock) ?? ircData.races[0];
-  const topMen = liveStandings.men.length ? liveStandings.men.slice(0, 8) : ircData.menStandings.slice(0, 8);
-  const topWomen = liveStandings.women.length ? liveStandings.women.slice(0, 8) : ircData.womenStandings.slice(0, 8);
-  const importedRaceCount = liveRaces.filter((race) => race.importStatus === "imported").length;
-  const resultLinkCount = liveRaces.filter((race) => race.sourceUrl).length;
-  const featuredLiveRace = liveRaces.find((race) => race.importStatus === "imported");
-  const featuredRaceHref = featuredLiveRace ? `/races/${featuredLiveRace.id}` : `/races/${realRace.id}`;
-  const featuredRaceName = featuredLiveRace?.eventName ?? realRace.event.name;
-  const featuredRaceDistance = featuredLiveRace
-    ? formatOptionalRaceDistance(featuredLiveRace.distanceMeters, featuredLiveRace.distanceLabel)
-    : formatRaceDistance(realRace.distanceMeters);
-  const featuredRaceDate = featuredLiveRace?.date ?? realRace.event.date;
+
+  const fallbackRace = ircData.races.find((race) => !race.isMock) ?? ircData.races[0];
+  const latestRaceCard = liveRaces.find((race) => race.importStatus === "imported") ?? liveRaces[0];
+  const latestLiveRace = latestRaceCard ? await getLiveRaceDetail(latestRaceCard.id) : null;
+  const latestRows: ResultRow[] = latestLiveRace?.results.length
+    ? latestLiveRace.results
+    : topResults(fallbackRace, fallbackRace.results.length).map((result) => ({
+        rankOverall: result.rankOverall,
+        rankGender: result.rankGender,
+        athleteId: result.athleteId,
+        name: result.name,
+        genderCategory: result.genderCategory,
+        time: result.time,
+        chiptime: result.chiptime,
+      }));
+
+  const topMen = (liveStandings.men.length ? liveStandings.men : ircData.menStandings).slice(0, 10);
+  const topWomen = (liveStandings.women.length ? liveStandings.women : ircData.womenStandings).slice(0, 10);
+  const latestMen = latestRows
+    .filter((result) => result.genderCategory === "m")
+    .sort((a, b) => (a.rankGender ?? a.rankOverall ?? 9999) - (b.rankGender ?? b.rankOverall ?? 9999))
+    .slice(0, 3);
+  const latestWomen = latestRows
+    .filter((result) => result.genderCategory === "f")
+    .sort((a, b) => (a.rankGender ?? a.rankOverall ?? 9999) - (b.rankGender ?? b.rankOverall ?? 9999))
+    .slice(0, 3);
+
+  const raceName = latestLiveRace?.eventName ?? latestRaceCard?.eventName ?? fallbackRace.event.name;
+  const raceHref = `/races/${latestLiveRace?.id ?? latestRaceCard?.id ?? fallbackRace.id}`;
+  const raceDistance = latestLiveRace
+    ? formatOptionalRaceDistance(latestLiveRace.distanceMeters, latestLiveRace.distanceLabel)
+    : latestRaceCard
+      ? formatOptionalRaceDistance(latestRaceCard.distanceMeters, latestRaceCard.distanceLabel)
+      : formatRaceDistance(fallbackRace.distanceMeters);
+  const raceDate = latestLiveRace?.date ?? latestRaceCard?.date ?? fallbackRace.event.date;
 
   return (
     <>
       <SiteHeader />
       <main>
-        <section className="border-b border-slate-200 bg-white">
-          <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1.15fr_0.85fr] lg:px-8">
-            <div className="flex flex-col justify-center">
-              <div className="mb-5 flex flex-wrap gap-2">
-                <StatusPill tone="emerald">
-                  {liveRaces.length ? `${liveRaces.length} Supabase races` : "One real Timataka race"}
-                </StatusPill>
-                <StatusPill tone={liveStandings.men.length || liveStandings.women.length ? "emerald" : "amber"}>
-                  {liveStandings.men.length || liveStandings.women.length
-                    ? "Live provisional standings"
-                    : "Prototype standings"}
-                </StatusPill>
-                <StatusPill tone="blue">Provisional V1 rules</StatusPill>
-              </div>
-              <h1 className="max-w-3xl text-4xl font-semibold tracking-normal text-slate-950 sm:text-5xl">
-                Icelandic running standings from real race data.
+        <section className="border-b-2 border-[#151515] bg-[#f05a28] text-[#151515]">
+          <div className="mx-auto grid max-w-7xl items-end gap-4 px-6 py-5 md:grid-cols-[1fr_auto]">
+            <div>
+              <p className="text-xs font-black uppercase tracking-wide">2026 season</p>
+              <h1 className="mt-2 text-4xl font-black leading-[0.9] tracking-[-0.065em] md:text-6xl">
+                Icelandic running rankings
               </h1>
-              <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">
-                The race calendar and provisional standings now come from the hosted Supabase
-                import pipeline. Scoring is intentionally simple while eligibility and tier rules
-                are finalized.
-              </p>
-              <div className="mt-8 grid max-w-3xl grid-cols-2 gap-3 sm:grid-cols-4">
-                <Metric label="Finishers" value={String(realRace.finished ?? realRace.results.length)} />
-                <Metric label="Calendar races" value={String(liveRaces.length || ircData.races.length)} />
-                <Metric label="Result links" value={String(resultLinkCount || 1)} />
-                <Metric label="Season" value={String(ircData.season)} />
-              </div>
             </div>
-            <div className="overflow-hidden rounded border border-slate-200 bg-slate-950 text-white">
-              <div className="grid min-h-72 grid-rows-[1fr_auto] bg-[linear-gradient(135deg,#064e3b_0%,#0f172a_54%,#f59e0b_100%)]">
-                <div className="p-6">
-                  <p className="text-sm font-medium text-emerald-100">Source race</p>
-                  <h2 className="mt-3 text-3xl font-semibold">{featuredRaceName}</h2>
-                  <p className="mt-2 text-sm text-slate-200">
-                    {featuredRaceDistance} · {formatDate(featuredRaceDate)}
-                  </p>
-                </div>
-                <div className="border-t border-white/15 bg-black/25 p-6">
-                  <ol className="space-y-3">
-                    {topResults(realRace, 3).map((result) => (
-                      <li key={result.athleteId} className="flex items-center justify-between gap-4">
-                        <span>
-                          <span className="mr-3 text-sm text-slate-300">{result.rankOverall}</span>
-                          <span className="font-medium">{result.name}</span>
-                        </span>
-                        <span className="font-mono text-sm">{result.chiptime}</span>
-                      </li>
-                  ))}
-                  </ol>
-                  <Link
-                    href={featuredRaceHref}
-                    className="mt-5 inline-flex rounded bg-white px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-emerald-50"
-                  >
-                    View full race
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section id="standings" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-          <div className="mb-6">
-            <h2 className="text-2xl font-semibold">Provisional Standings</h2>
-            <p className="mt-1 max-w-3xl text-sm text-slate-600">
-              Live imported results scored as 101 minus gender placing. Race tiers, eligibility,
-              best-result limits, and Elo are not applied yet.
-            </p>
-          </div>
-          <div className="grid gap-6 xl:grid-cols-2">
-            <RankingTable title="Men" rows={topMen} valueLabel="Pts" />
-            <RankingTable title="Women" rows={topWomen} valueLabel="Pts" />
-          </div>
-        </section>
-
-        <section id="races" className="border-t border-slate-200 bg-white">
-          <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-            <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <h2 className="text-2xl font-semibold">Race Calendar</h2>
-                <p className="mt-1 text-sm text-slate-600">
-                  {liveRaces.length
-                    ? `${importedRaceCount} imported result set and ${resultLinkCount} Timataka links from Supabase.`
-                    : "Supabase calendar is unavailable; showing the prototype JSON dataset."}
-                </p>
-              </div>
-              <Link href="/methodology" className="text-sm font-semibold text-emerald-700">
-                Methodology
+            <div className="flex gap-3">
+              <Link className="bg-[#151515] px-3 py-2 text-sm font-black text-[#f4f0e8]" href="/standings">
+                Standings
+              </Link>
+              <Link className="border-2 border-[#151515] px-3 py-2 text-sm font-black text-[#151515]" href="/races">
+                Races
               </Link>
             </div>
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {liveRaces.length
-                ? liveRaces.map((race) => (
-                    <Link
-                      key={race.id}
-                      href={`/races/${race.id}`}
-                      className="rounded border border-slate-200 p-4 hover:border-emerald-500 hover:bg-emerald-50/40"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <h3 className="font-semibold">{race.eventName}</h3>
-                          <p className="mt-1 text-sm text-slate-600">
-                            {formatDate(race.date)} ·{" "}
-                            {formatOptionalRaceDistance(race.distanceMeters, race.distanceLabel)}
-                          </p>
-                        </div>
-                        <StatusPill tone={race.importStatus === "imported" ? "emerald" : "blue"}>
-                          {race.importStatus === "imported" ? "Imported" : "Scheduled"}
-                        </StatusPill>
-                      </div>
-                      <p className="mt-4 text-sm text-slate-600">
-                        {race.raceTier.toUpperCase()} tier · {race.raceType ?? "Race"}
-                        {race.isIcelandicChampionship ? " · Icelandic championship" : ""}
-                      </p>
-                    </Link>
-                  ))
-                : ircData.races.map((race) => (
-                    <Link
-                      key={race.id}
-                      href={`/races/${race.id}`}
-                      className="rounded border border-slate-200 p-4 hover:border-emerald-500 hover:bg-emerald-50/40"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <h3 className="font-semibold">{race.event.name}</h3>
-                          <p className="mt-1 text-sm text-slate-600">
-                            {formatDate(race.event.date)} · {formatRaceDistance(race.distanceMeters)}
-                          </p>
-                        </div>
-                        <StatusPill tone={race.isMock ? "amber" : "emerald"}>
-                          {race.isMock ? "Mock" : "Imported"}
-                        </StatusPill>
-                      </div>
-                      <p className="mt-4 text-sm text-slate-600">
-                        {race.finished} finishers · {race.raceTier} tier · {race.event.region}
-                      </p>
-                    </Link>
-                  ))}
-            </div>
           </div>
         </section>
 
-        <section className="mx-auto max-w-7xl px-4 py-8 text-sm text-slate-500 sm:px-6 lg:px-8">
-          Race calendar and provisional standings read from Supabase when public env vars are
-          available. Fallback mock standings generated {formatDate(ircData.generatedAt.slice(0, 10))}.
+        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-6 py-8 md:grid-cols-3">
+          <RankingModule title="Men" href="/standings#men" rows={topMen} />
+          <RankingModule title="Women" href="/standings#women" rows={topWomen} />
+          <section className="bg-[#151515] p-5 text-[#f4f0e8]">
+            <div className="inline-block bg-[#f05a28] px-2 py-1 text-xs font-black uppercase tracking-wide text-[#151515]">
+              Latest result
+            </div>
+            <h3 className="mt-4 text-4xl font-black leading-none tracking-[-0.05em]">{raceName}</h3>
+            <p className="mt-2 text-sm font-semibold text-[#cfc8bd]">
+              {raceDistance} · {formatDate(raceDate)}
+            </p>
+            <div className="mt-6 grid gap-5 border-t border-[#f4f0e8]/30 pt-4">
+              <ResultMiniTable title="Men" rows={latestMen} />
+              <ResultMiniTable title="Women" rows={latestWomen} />
+            </div>
+            <Link className="mt-6 inline-flex bg-[#f4f0e8] px-3 py-2 text-sm font-black text-[#151515]" href={raceHref}>
+              Results
+            </Link>
+          </section>
+        </div>
+
+        <section className="mx-auto grid max-w-7xl gap-8 px-6 py-8 lg:grid-cols-[0.95fr_1.05fr]">
+          <section className="border-2 border-[#151515] bg-white p-5">
+            <div className="mb-3 flex items-baseline justify-between border-b-2 border-[#151515] pb-2">
+              <h3 className="text-lg font-black tracking-tight">Elo</h3>
+              <Link
+                className="text-sm font-bold text-[#151515] underline decoration-[#f05a28] decoration-2 underline-offset-4"
+                href="/elo"
+              >
+                Full list
+              </Link>
+            </div>
+            <table className="w-full text-left text-[14px]">
+              <thead className="text-xs uppercase tracking-wide text-[#69645d]">
+                <tr>
+                  <th className="py-2 pr-2">#</th>
+                  <th className="py-2 pr-2">Athlete</th>
+                  <th className="py-2 text-right">Rating</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#d8d1c5]">
+                {ircData.eloRankings.slice(0, 10).map((row) => (
+                  <tr key={row.athleteId}>
+                    <td className="w-10 py-2 font-black tabular-nums">{row.rank}</td>
+                    <td className="py-2 pr-2 font-semibold">
+                      <AthleteLink athleteId={row.athleteId}>{row.athleteName}</AthleteLink>
+                    </td>
+                    <td className="py-2 text-right font-mono font-semibold tabular-nums">
+                      {row.rating.toFixed(0)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+
+          <section className="border-2 border-[#151515] bg-[#f4f0e8]">
+            <div className="border-b-2 border-[#151515] p-5">
+              <h3 className="text-lg font-black tracking-tight">Methodology</h3>
+            </div>
+            <div className="divide-y divide-[#151515]">
+              <MethodRow
+                title="Standings"
+                text="Season points from eligible race results. Best results count toward the championship table."
+              />
+              <MethodRow
+                title="Elo"
+                text="Ratings update after races using field strength, placing, and head-to-head outcomes."
+              />
+              <MethodRow title="Sources" text="Results are linked to published timing sources where available." />
+            </div>
+          </section>
+        </section>
+
+        <section className="border-y-2 border-[#151515] bg-[#f05a28] text-[#151515]">
+          <div className="mx-auto flex max-w-7xl flex-col gap-4 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-2xl font-black tracking-[-0.04em]">Standings · Elo · Methodology</p>
+            <Link className="bg-[#151515] px-4 py-3 text-sm font-black text-[#f4f0e8]" href="/methodology">
+              Methodology
+            </Link>
+          </div>
         </section>
       </main>
     </>
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function RankingModule({
+  title,
+  href,
+  rows,
+}: {
+  title: string;
+  href: string;
+  rows: RankingRow[];
+}) {
   return (
-    <div className="rounded border border-slate-200 bg-slate-50 p-4">
-      <div className="text-2xl font-semibold">{value}</div>
-      <div className="mt-1 text-xs font-medium uppercase text-slate-500">{label}</div>
+    <section className="border-2 border-[#151515] bg-white p-5">
+      <div className="mb-3 flex items-baseline justify-between border-b-2 border-[#151515] pb-2">
+        <h3 className="text-lg font-black tracking-tight">{title}</h3>
+        <Link
+          className="text-sm font-bold text-[#151515] underline decoration-[#f05a28] decoration-2 underline-offset-4"
+          href={href}
+        >
+          Full table
+        </Link>
+      </div>
+      <table className="w-full text-left text-[14px]">
+        <thead className="text-xs uppercase tracking-wide text-[#69645d]">
+          <tr>
+            <th className="py-2 pr-2">#</th>
+            <th className="py-2 pr-2">Athlete</th>
+            <th className="py-2 text-right">Pts</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-[#d8d1c5]">
+          {rows.map((row) => (
+            <tr key={row.athleteId}>
+              <td className="w-10 py-2 font-black tabular-nums">{row.rank}</td>
+              <td className="py-2 pr-2 font-semibold">
+                <AthleteLink athleteId={row.athleteId}>{row.athleteName}</AthleteLink>
+              </td>
+              <td className="py-2 text-right font-semibold tabular-nums">{row.totalPoints?.toFixed(1) ?? "-"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
+  );
+}
+
+function ResultMiniTable({ title, rows }: { title: string; rows: ResultRow[] }) {
+  return (
+    <div>
+      <h4 className="border-b border-[#f4f0e8]/30 pb-2 text-xs font-black uppercase tracking-wide text-[#cfc8bd]">
+        {title}
+      </h4>
+      <table className="w-full text-left text-[14px]">
+        <thead className="sr-only">
+          <tr>
+            <th>#</th>
+            <th>Athlete</th>
+            <th>Time</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-[#f4f0e8]/20">
+          {rows.map((row) => (
+            <tr key={`${title}-${row.rankGender ?? row.rankOverall}-${row.name}`}>
+              <td className="w-8 py-2 font-black tabular-nums">{row.rankGender ?? row.rankOverall}</td>
+              <td className="py-2 pr-2 font-semibold">
+                <AthleteLink athleteId={row.athleteId}>
+                  {row.name}
+                </AthleteLink>
+              </td>
+              <td className="w-20 py-2 text-right font-mono font-semibold tabular-nums">
+                {row.chiptime ?? row.time ?? "-"}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
 
-function RankingTable({
-  title,
-  rows,
-  valueLabel,
-  isElo = false,
-}: {
-  title: string;
-  rows: Array<{
-    rank: number;
-    athleteId: string;
-    athleteName: string;
-    club: string | null;
-    totalPoints?: number;
-    rating?: number;
-    racesCount?: number;
-  }>;
-  valueLabel: string;
-  isElo?: boolean;
-}) {
+function MethodRow({ title, text }: { title: string; text: string }) {
   return (
-    <div className="overflow-hidden rounded border border-slate-200 bg-white">
-      <div className="border-b border-slate-200 px-5 py-4">
-        <h2 className="text-xl font-semibold">{title}</h2>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-            <tr>
-              <th className="w-14 px-4 py-3">Rank</th>
-              <th className="px-4 py-3">Athlete</th>
-              <th className="px-4 py-3">Club</th>
-              <th className="px-4 py-3 text-right">Races</th>
-              <th className="px-4 py-3 text-right">{valueLabel}</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {rows.map((row) => {
-              const athlete = ircData.athletes.find((entry) => entry.id === row.athleteId);
-              return (
-                <tr key={row.athleteId}>
-                  <td className="px-4 py-3 font-semibold">{row.rank}</td>
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`/athletes/${athlete?.slug ?? row.athleteId}`}
-                      className="font-medium text-slate-950 hover:text-emerald-700"
-                    >
-                      {row.athleteName}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 text-slate-600">{row.club ?? "Unattached"}</td>
-                  <td className="px-4 py-3 text-right font-mono">{row.racesCount ?? "-"}</td>
-                  <td className="px-4 py-3 text-right font-mono">
-                    {isElo ? row.rating?.toFixed(0) : row.totalPoints?.toFixed(1)}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+    <div className="grid gap-2 p-5 sm:grid-cols-[10rem_1fr]">
+      <h4 className="text-sm font-black uppercase tracking-wide">{title}</h4>
+      <p className="text-sm font-semibold leading-6 text-[#4f4a44]">{text}</p>
     </div>
+  );
+}
+
+function AthleteLink({
+  athleteId,
+  children,
+}: {
+  athleteId: string | null;
+  children: React.ReactNode;
+}) {
+  if (!athleteId) return <span>{children}</span>;
+  const athlete = ircData.athletes.find((entry) => entry.id === athleteId || entry.slug === athleteId);
+  return (
+    <Link className="underline-offset-4 hover:underline" href={`/athletes/${athlete?.slug ?? athleteId}`}>
+      {children}
+    </Link>
   );
 }

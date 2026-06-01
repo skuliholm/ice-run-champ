@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Icelandic Running Championships",
-  description: "Prototype championship standings and power rankings for Icelandic road running.",
+  description: "Icelandic running rankings, race results, Elo ratings, and methodology.",
 };
 
 export default function RootLayout({
@@ -13,7 +13,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full antialiased">
-      <body className="min-h-full bg-slate-50 text-slate-950">{children}</body>
+      <body className="min-h-full bg-[#f4f0e8] text-[#151515]">{children}</body>
     </html>
   );
 }

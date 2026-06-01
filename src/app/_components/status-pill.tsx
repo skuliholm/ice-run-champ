@@ -10,11 +10,11 @@ export function StatusPill({
   return (
     <span
       className={classNames(
-        "inline-flex items-center rounded px-2 py-1 text-xs font-semibold",
-        tone === "emerald" && "bg-emerald-100 text-emerald-800",
-        tone === "amber" && "bg-amber-100 text-amber-800",
-        tone === "blue" && "bg-sky-100 text-sky-800",
-        tone === "slate" && "bg-slate-100 text-slate-700",
+        "inline-flex items-center border border-[#151515] px-2 py-1 text-xs font-black uppercase tracking-wide",
+        tone === "emerald" && "bg-[#f05a28] text-[#151515]",
+        tone === "amber" && "bg-[#f4f0e8] text-[#151515]",
+        tone === "blue" && "bg-white text-[#151515]",
+        tone === "slate" && "bg-[#151515] text-[#f4f0e8]",
       )}
     >
       {children}
